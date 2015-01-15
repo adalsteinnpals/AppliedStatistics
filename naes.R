@@ -1,4 +1,4 @@
-dev.off()
+dev.off() #virkar þetta?
 rm(list=ls())
 
 data.1 <- read.table("campy_pre2002.txt",header=T,sep="\t", fill = TRUE)
