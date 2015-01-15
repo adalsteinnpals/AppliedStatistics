@@ -35,6 +35,8 @@ levels(data$resultat)  <- c("NEG","POS","POS","POS","POS","POS","POS","POS","POS
 
 data <- subset(data,duplicated(jnr)!=TRUE)
 
+asdjf;lkasdf;lkasf;lkjas
+
 data  <- subset(data, matr =="Kloaksvaber"| matr =="Svaberprøve" | matr =="766" | matr =="772")
 
 data$weeknr  <- as.numeric( format(data$prvdato+3, "%U"))
