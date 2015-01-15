@@ -1,6 +1,6 @@
 dev.off() #virkar þetta?
 rm(list=ls())
-
+#asdfasdfasdfasdf
 data.1 <- read.table("campy_pre2002.txt",header=T,sep="\t", fill = TRUE)
 data.2 <- read.table("campy_2002-2005.csv",header=T,sep=",")
 data.3 <- read.table("campy_2005-.csv",header=T,sep=",")
