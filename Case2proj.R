@@ -1,4 +1,7 @@
-data <- read.table("campy.txt",header=T)
+dev.off() 
+rm(list=ls())
 
-summary(data)
-data
+data <- read.table("case2regionsOnePerBatch.txt",header=T)
+
+
+
