@@ -11,6 +11,7 @@ data.primary <- data[,c("aveTemp","relHum","sunHours","precip","ratio")]
 
 #plot of the correlation between variables
 pairs(data.primary,panel=panel.smooth)
+<<<<<<< HEAD
 #comment on plot as it indicates correlation with variables
 ##### 
 #not sure how for implying on the model development
@@ -19,6 +20,16 @@ library(tree)
 tree.mod1<-tree(ratio~.,data.primary)
 plot(tree.mod1)
 text(tree.mod1)
+=======
+
+
+#install.packages("tree")
+library(tree)
+model1<-tree(ratio~.,data.primary)
+
+plot(model1)
+text(model1)
+>>>>>>> 9444a5f5f61adb6e5732ab54c8b03983bb244840
 #split the aveTemp in 11.25
 #should we use this for our first models???
 #try
@@ -101,4 +112,31 @@ anova(lm6)
 
 
 
+<<<<<<< HEAD
 
+=======
+
+lm1 <- lm(ratio~.,data.primary)
+
+anova(lm1)
+lm2 <- step(lm1)
+
+
+
+
+
+
+#### Part2 - Analyzis of position
+
+data$ratioR1 = (data$R1pos/data$R1total)
+data$ratioR2 = (data$R2pos/data$R2total)
+data$ratioR3 = (data$R3pos/data$R3total)
+data$ratioR4 = (data$R4pos/data$R4total)
+data$ratioR5 = (data$R5pos/data$R5total)
+data$ratioR6 = (data$R6pos/data$R6total)
+data$ratioR7 = (data$R7pos/data$R7total)
+data$ratioR8 = (data$R8pos/data$R8total)
+
+
+
+>>>>>>> 9444a5f5f61adb6e5732ab54c8b03983bb244840
