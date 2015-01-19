@@ -10,15 +10,17 @@ plot(data$ratio[1:52],typ="l")
 #new data.frame that includes only the parameters of interest
 names(data)
 data.primary <- data[,c("aveTemp","maxTemp","relHum","sunHours","precip","ratio")]
-data.primary.vis <- data.primary[!(data.primary$relHum==0),] #delete zeros from the humidity data
+data.primary <- data.primary[(data.primary$relHum[1:470]!=0),] #delete zeros from the humidity data
 ##############!!!!remove the rows that have relHum==0
 
 #plot of the correlation between variables
-pairs(data.primary.vis,panel=panel.smooth)
+pairs(data.primary,panel=panel.smooth)
 #comment on this plot in the report
 
 #eliminate the na rows 
 data.primary.NAomit0 <- data.primary[complete.cases(data.primary),]
+data.primary.NAomit1 <- data.primary[complete.cases(data.primary$relHum),]
+
 #comment on plot as it indicates correlation with variables
 ##### 
 #use tree for visualizing in which degree the different variables influence the variance
@@ -53,12 +55,7 @@ summary(gam1)
 #the s(precip is not significant)
 par(mfrow=c(2,3))
 plot(gam1)
-
-
-
-
-+
-  ++#Following suggestions from the gam model
+#Following suggestions from the gam model
     #aveTemp - pwl or quadratic
     #maxTemp - linear or quadratic
     #relHum - linear
@@ -69,56 +66,100 @@ plot(gam1)
 #we check the significance of the variables is similar for the general linear model - with no interactions
 lm1 <- lm(ratio~(aveTemp+maxTemp+relHum+sunHours+precip),data.primary.NAomit0)
 anova(lm1)
+drop1(lm1,test="F")
 par(mfrow=c(2,2))
 plot(lm1)
-#as expected, both the relHum and precip are insignificant and the residuals look bad
+# according to a F test, precip is insignificant and the residuals look bad
 #such was also the case for the residuals in the two- and three-way interactions
 #we prefere to look at transformation rather than interaction - BETTER REASONING NEEDED
 
-#for next model we remove the "relHum" as it was the least significant term for previous models
-#we see that an pwl term could be added for the aveTemp - so we locate the optimal split point
+#for next model we remove the "precip" as it was not significant in previous models
+#furthermore it seems to be fairly uncorrelated to the other parameters - see paired plot
+#we saw in gam1 that an pwl term could be added for the aveTemp - so we locate the optimal split point
 pwl<-function(x,x0){
   return( (x > x0) * (x-x0) )
 }
 
 optim<-optimize(function(zz){
-  sum( residuals(lm(ratio ~ (aveTemp+maxTemp+sunHours+precip)+pwl(aveTemp,zz),data=data.primary.NAomit0))^2 )
+  sum( residuals(lm(ratio ~ (aveTemp+maxTemp+relHum+sunHours)+pwl(aveTemp,zz),data=data.primary.NAomit0))^2 )
 },c(5,11)) 
 
 (x2.opt<-optim$minimum)
 
-lm2 <- lm(ratio~aveTemp+maxTemp+sunHours+precip+pwl(aveTemp,x2.opt),data=data.primary.NAomit0)
+lm2 <- lm(ratio~aveTemp+maxTemp+relHum+sunHours+pwl(aveTemp,x2.opt),data=data.primary.NAomit0)
 anova(lm2)
+drop1(lm2,test="F")
 par(mfrow=c(2,2))
 plot(lm2)
-#residuals still look bad
-#we update our model
-#we remove the sunHours due to insignificans 
-#IS THE EXTREME SHIFT TO INSIGNIFICANCE DUE TO NEGATIVE CORRELATION TO "RELHUM"
-
+#residuals look better but still not sufficiently good
+#look at individual residuals
+for ( i in  c("aveTemp","maxTemp","relHum","sunHours")){
+  plot(data.primary.NAomit0[[i]],residuals(lm2),type="n",xlab=i)
+  panel.smooth(data.primary.NAomit0[[i]],residuals(lm2))
+}
+#the residuals for relHum and sunHours should be considered for transformation
+#sunHours are insignificant and could probably be removed 
+#new model
+#we remove the sunHours due to insignificans - also consider more data due to many NA's in sunHours
+#data.primary.NAomit1
 optim<-optimize(function(zz){
-  sum( residuals(lm(ratio ~ (aveTemp+maxTemp+precip)+pwl(aveTemp,zz),data=data.primary.NAomit0))^2 )
-},c(5,11)) 
+  sum( residuals(lm(ratio ~ (aveTemp+maxTemp+relHum)+pwl(aveTemp,zz),data=data.primary.NAomit1))^2 )
+},c(5,11))  
 
 (x3.opt<-optim$minimum)
 
-lm3 <- lm(ratio~aveTemp+maxTemp+precip+pwl(aveTemp,x2.opt),data=data.primary.NAomit0)
+lm3 <- lm(ratio~aveTemp+maxTemp+relHum+pwl(aveTemp,x3.opt),data=data.primary.NAomit1)
 anova(lm3)
+drop1(lm3,test="F")
+#all parameters significant
 par(mfrow=c(2,2))
 plot(lm3)
+#variance increases for the total, some strange leverage points, but otherwise better than before
+par(mfrow=c(2,2))
+for ( i in  c("aveTemp","maxTemp","relHum")){
+  plot(data.primary.NAomit1[[i]],residuals(lm3),type="n",xlab=i)
+  panel.smooth(data.primary.NAomit1[[i]],residuals(lm3))
+}
+#the residuals look good for aveTemp and maxTemp -
+#according to the drop1 we can drop the relHum and we try that
 
+optim<-optimize(function(zz){
+  sum( residuals(lm((ratio) ~aveTemp+maxTemp+pwl(aveTemp,zz),data=data.primary.NAomit0))^2 )
+},c(3,15))
+(x4.opt<-optim$minimum)
 
+lm4 <- lm((ratio)~aveTemp+maxTemp+pwl(aveTemp,x4.opt),data=data.primary.NAomit0)
+anova(lm4)
+par(mfrow=c(2,2))
+plot(lm4)
+#all parameters significant but the variance increases with higher values
+par(mfrow=c(2,1))
+for ( i in  c("aveTemp","maxTemp")){
+  plot(data.primary.NAomit0[[i]],residuals(lm4),type="n",xlab=i)
+  panel.smooth(data.primary.NAomit0[[i]],residuals(lm4))
+}
+#that is thoug no the case for the eplainatory variables so we update the model by taking the 
+#sqrt of the response variable
 
+optim<-optimize(function(zz){
+  sum( residuals(lm(sqrt(ratio) ~aveTemp+maxTemp+pwl(aveTemp,zz),data=data.primary.NAomit0))^2 )
+},c(3,15))
+(x5.opt<-optim$minimum)
 
+lm5 <- lm(sqrt(ratio)~aveTemp+maxTemp+pwl(aveTemp,x5.opt),data=data.primary.NAomit0)
+anova(lm5)
+par(mfrow=c(2,2))
+plot(lm5)
 
 ######### final model ########
 optim<-optimize(function(zz){
-  sum( residuals(lm(sqrt(ratio) ~ (aveTemp+relHum)+pwl(aveTemp,zz),data=data.primary.NAomit0))^2 )
-},c(3,8))
+  sum( residuals(lm(sqrt(ratio) ~aveTemp+relHum+pwl(aveTemp,zz),data=data.primary.NAomit0))^2 )
+},c(3,15))
 (x15.opt<-optim$minimum)
 
-lm15 <- lm(sqrt(ratio)~(aveTemp+relHum)+pwl(aveTemp,x15.opt),data=data.primary.NAomit0)
+lm15 <- lm(sqrt(ratio)~aveTemp+relHum+pwl(aveTemp,x15.opt),data=data.primary.NAomit0)
 anova(lm15)
+summary(lm15)
 par(mfrow=c(2,2))
 plot(lm15)
 
