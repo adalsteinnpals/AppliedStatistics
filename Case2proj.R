@@ -32,12 +32,24 @@ text(tree.mod1)
 ####################### Analyze the parameters for patterns #######################
 #install.packages("mgcv")
 library(mgcv)
-gam1<-gam(ratio~s(aveTemp)+s(maxTemp)+s(maxTemp)+s(relHum)+s(sunHours)+s(precip),data=data.primary.NAomit0)
+gam1<-gam(ratio~s(aveTemp)+s(maxTemp)+s(relHum)+s(sunHours)+s(precip),data=data.primary.NAomit0)
 summary(gam1)
 #the s(precip is not significant)
 par(mfrow=c(2,3))
 plot(gam1)
-#Following suggestions from the gam model
+
+
+gam1<-gam(ratio~s(aveTemp)+s(maxTemp)+s(relHum)+s(sunHours)+s(precip),data=data.primary.NAomit0)
+summary(gam1)
+#the s(precip is not significant)
+par(mfrow=c(2,3))
+plot(gam1)
+
+
+
+
++
+  ++#Following suggestions from the gam model
     #aveTemp - pwl or quadratic
     #maxTemp - linear or quadratic
     #relHum - linear
@@ -189,5 +201,36 @@ data$ratioR8 = (data$R8pos/data$R8total)
 dev.off()
 boxplot(data$ratioR1, data$ratioR2, data$ratioR3, data$ratioR4, data$ratioR5, data$ratioR6, data$ratioR7, data$ratioR8)
 
+data.sub = subset(data,select=c(year,week,aveTemp,maxTemp,relHum,sunHours,precip))
 
+data.R1 = data.frame(data.sub,data$ratioR1,region=1)
+data.R2 = data.frame(data.sub,data$ratioR2,region=2)
+data.R3 = data.frame(data.sub,data$ratioR3,region=3)
+data.R4 = data.frame(data.sub,data$ratioR4,region=4)
+data.R5 = data.frame(data.sub,data$ratioR5,region=5)
+data.R6 = data.frame(data.sub,data$ratioR6,region=6)
+data.R7 = data.frame(data.sub,data$ratioR7,region=7)
+data.R8 = data.frame(data.sub,data$ratioR8,region=8)
+
+
+colnames(data.R1) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R2) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R3) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R4) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R5) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R6) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R7) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R8) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+
+
+data.reg = rbind(data.R1,data.R2,data.R3,data.R4,data.R5,data.R6,data.R7,data.R8)
+
+data.reg$region = as.factor(data.reg$region)
+
+data.reg
+
+
+lm1<-lm(ratio~region,data.reg)
+summary(lm1)
+anova(lm1)
 
