@@ -7,7 +7,8 @@
 
 ####################################
 ## Example from Chapter 11 of the book
-
+rm(list=ls())
+dev.off()
 ozone.pollution<-read.table("ozone.data.txt",header=T)
 summary(ozone.pollution)
 
@@ -33,7 +34,7 @@ text(model)
 ### - a way to get ideas for transformations
 ### But cannot show interactions
 
-install.packages("mgcv")
+#install.packages("mgcv")
 library(mgcv)
 par(mfrow=c(2,2))
 model<-gam(ozone~s(rad)+s(temp)+s(wind),data=ozone.pollution)
