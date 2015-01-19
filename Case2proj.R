@@ -24,17 +24,20 @@ data.primary.NAomit0 <- data.primary[complete.cases(data.primary),]
 #use tree for visualizing in which degree the different variables influence the variance
 #install.packages("tree")
 library(tree)
-tree.mod1<-tree(ratio~.,data.primary)
+par(mfrow=c(1,1))
+tree.mod1<-tree(ratio~.,data.primary.NAomit0)
 plot(tree.mod1)
 text(tree.mod1)
-#the temperature and the sun hours seem to have great impact on the variation (consider these variables)
+#the temperature and the sun hours seem to have great impact on the variation 
+#(consider these variables)
 
 ####################### Analyze the parameters for patterns #######################
 #install.packages("mgcv")
 library(mgcv)
+#in order to locate possible transformations of the explanatory variables - no interactions
 gam1<-gam(ratio~s(aveTemp)+s(maxTemp)+s(maxTemp)+s(relHum)+s(sunHours)+s(precip),data=data.primary.NAomit0)
-summary(gam1)
-#the s(precip is not significant)
+summary(gam1) 
+#the s(precip) is not significant
 par(mfrow=c(2,3))
 plot(gam1)
 #Following suggestions from the gam model
@@ -42,20 +45,75 @@ plot(gam1)
     #maxTemp - linear or quadratic
     #relHum - linear
     #sunHours - linear or nonlinear
-    #precip - linear or pwl - not significant though
-####### intermediate test 19.ja ###########
-lm13 <- lm(ratio~aveTemp*maxTemp*relHum*sunHours,data=data.primary.NAomit0)
-summary(lm13)
-lm14 <- step(lm13)
-#drop the highest order term
-drop1(lm14,test="F")
-summary(lm14)
-par(mfrow=c(2,2))
-plot(lm14)
+    #precip - linear or pwl - not significant 
 
-for ( i in  c("aveTemp","maxTemp","relHum","sunHours")){
-  plot(data.primary.NAomit0[[i]],residuals(lm14),type="n",xlab=i)
-  panel.smooth(data.primary.NAomit0[[i]],residuals(lm14))
+####### intermediate test 19.jan ###########
+#we check the significance of the variables is similar for the general linear model - with no interactions
+lm1 <- lm(ratio~(aveTemp+maxTemp+relHum+sunHours+precip),data.primary.NAomit0)
+anova(lm1)
+par(mfrow=c(2,2))
+plot(lm1)
+#as expected, both the relHum and precip are insignificant and the residuals look bad
+#such was also the case for the residuals in the two- and three-way interactions
+#we prefere to look at transformation rather than interaction - BETTER REASONING NEEDED
+
+#for next model we remove the "relHum" as it was the least significant term for previous models
+#we see that an pwl term could be added for the aveTemp - so we locate the optimal split point
+pwl<-function(x,x0){
+  return( (x > x0) * (x-x0) )
+}
+
+optim<-optimize(function(zz){
+  sum( residuals(lm(ratio ~ (aveTemp+maxTemp+sunHours+precip)+pwl(aveTemp,zz),data=data.primary.NAomit0))^2 )
+},c(5,11)) 
+
+(x2.opt<-optim$minimum)
+
+lm2 <- lm(ratio~aveTemp+maxTemp+sunHours+precip+pwl(aveTemp,x2.opt),data=data.primary.NAomit0)
+anova(lm2)
+par(mfrow=c(2,2))
+plot(lm2)
+#residuals still look bad
+#we update our model
+#we remove the sunHours due to insignificans 
+#IS THE EXTREME SHIFT TO INSIGNIFICANCE DUE TO NEGATIVE CORRELATION TO "RELHUM"
+
+optim<-optimize(function(zz){
+  sum( residuals(lm(ratio ~ (aveTemp+maxTemp+precip)+pwl(aveTemp,zz),data=data.primary.NAomit0))^2 )
+},c(5,11)) 
+
+(x3.opt<-optim$minimum)
+
+lm3 <- lm(ratio~aveTemp+maxTemp+precip+pwl(aveTemp,x2.opt),data=data.primary.NAomit0)
+anova(lm3)
+par(mfrow=c(2,2))
+plot(lm3)
+
+
+
+
+
+######### final model ########
+optim<-optimize(function(zz){
+  sum( residuals(lm(sqrt(ratio) ~ (aveTemp+relHum)+pwl(aveTemp,zz),data=data.primary.NAomit0))^2 )
+},c(3,8))
+(x15.opt<-optim$minimum)
+
+lm15 <- lm(sqrt(ratio)~(aveTemp+relHum)+pwl(aveTemp,x15.opt),data=data.primary.NAomit0)
+anova(lm15)
+par(mfrow=c(2,2))
+plot(lm15)
+
+par(mfrow=c(1,1))
+tree15 <- tree(lm15)
+plot(tree15)
+text(tree15)
+########
+
+
+for ( i in  c("aveTemp","relHum","sunHours")){
+  plot(data.primary.NAomit0[[i]],residuals(lm15),type="n",xlab=i)
+  panel.smooth(data.primary.NAomit0[[i]],residuals(lm15))
 }
 
 pwl<-function(x,x0){
