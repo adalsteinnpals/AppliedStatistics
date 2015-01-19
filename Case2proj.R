@@ -186,4 +186,8 @@ data$ratioR8 = (data$R8pos/data$R8total)
 
 
 
->>>>>>> 9444a5f5f61adb6e5732ab54c8b03983bb244840
+dev.off()
+boxplot(data$ratioR1, data$ratioR2, data$ratioR3, data$ratioR4, data$ratioR5, data$ratioR6, data$ratioR7, data$ratioR8)
+
+
+
