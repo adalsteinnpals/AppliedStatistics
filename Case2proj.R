@@ -229,6 +229,7 @@ plot(lm6)
 #looks similar as before - makes little difference
 anova(lm6)
 
+as.character(data$sunHours)
 
 ######
 #try to split for a new model - use pwl
@@ -263,9 +264,14 @@ data$ratioR8 = (data$R8pos/data$R8total)
 
 
 dev.off()
-boxplot(data$ratioR1, data$ratioR2, data$ratioR3, data$ratioR4, data$ratioR5, data$ratioR6, data$ratioR7, data$ratioR8)
 
-data.sub = subset(data,select=c(year,week,aveTemp,maxTemp,relHum,sunHours,precip))
+setEPS()
+postscript("boxplot.eps")
+boxplot(data$ratioR1, data$ratioR2, data$ratioR3, data$ratioR4, data$ratioR5, data$ratioR6, data$ratioR7, data$ratioR8,xlab="Regions",ylab="Ratio of positive cases")
+dev.off()
+
+
+data.sub = subset(data,select=c(year,week,aveTemp,relHum))
 
 data.R1 = data.frame(data.sub,data$ratioR1,region=1)
 data.R2 = data.frame(data.sub,data$ratioR2,region=2)
@@ -277,14 +283,14 @@ data.R7 = data.frame(data.sub,data$ratioR7,region=7)
 data.R8 = data.frame(data.sub,data$ratioR8,region=8)
 
 
-colnames(data.R1) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
-colnames(data.R2) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
-colnames(data.R3) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
-colnames(data.R4) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
-colnames(data.R5) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
-colnames(data.R6) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
-colnames(data.R7) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
-colnames(data.R8) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R1) <- c("year","week","aveTemp","relHum","ratio","region")
+colnames(data.R2) <- c("year","week","aveTemp","relHum","ratio","region")
+colnames(data.R3) <- c("year","week","aveTemp","relHum","ratio","region")
+colnames(data.R4) <- c("year","week","aveTemp","relHum","ratio","region")
+colnames(data.R5) <- c("year","week","aveTemp","relHum","ratio","region")
+colnames(data.R6) <- c("year","week","aveTemp","relHum","ratio","region")
+colnames(data.R7) <- c("year","week","aveTemp","relHum","ratio","region")
+colnames(data.R8) <- c("year","week","aveTemp","relHum","ratio","region")
 
 
 data.reg = rbind(data.R1,data.R2,data.R3,data.R4,data.R5,data.R6,data.R7,data.R8)
@@ -293,8 +299,16 @@ data.reg$region = as.factor(data.reg$region)
 
 data.reg
 
+data.reg = data.reg[complete.cases(data.reg),]
 
-lm1<-lm(ratio~region,data.reg)
-summary(lm1)
-anova(lm1)
+lm15reg <- lm(sqrt(ratio)~region+(aveTemp+relHum)+pwl(aveTemp,x15.opt),data=data.reg)
+
+summary(lm15reg)
+summary(lm15)
+par(mfrow=c(2,2))
+plot(lm15)
+plot(lm15reg)
+data.reg
+
+
 
