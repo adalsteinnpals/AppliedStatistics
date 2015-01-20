@@ -10,29 +10,46 @@ plot(data$ratio[1:52],typ="l")
 #new data.frame that includes only the parameters of interest
 names(data)
 data.primary <- data[,c("aveTemp","maxTemp","relHum","sunHours","precip","ratio")]
-data.primary.vis <- data.primary[!(data.primary$relHum==0),] #delete zeros from the humidity data
-##############!!!!remove the rows that have relHum==0
+data.primary <- data.primary[(data.primary$relHum[1:470]!=0),] #delete zeros from the humidity data
 
 #plot of the correlation between variables
-pairs(data.primary.vis,panel=panel.smooth)
+pairs(data.primary,panel=panel.smooth)
 #comment on this plot in the report
 
 #eliminate the na rows 
 data.primary.NAomit0 <- data.primary[complete.cases(data.primary),]
+data.primary.NAomit1 <- data.primary[complete.cases(data.primary$relHum),]
+
 #comment on plot as it indicates correlation with variables
 ##### 
 #use tree for visualizing in which degree the different variables influence the variance
 #install.packages("tree")
 library(tree)
-tree.mod1<-tree(ratio~.,data.primary)
+par(mfrow=c(1,1))
+tree.mod1<-tree(ratio~.,data.primary.NAomit0)
 plot(tree.mod1)
 text(tree.mod1)
-#the temperature and the sun hours seem to have great impact on the variation (consider these variables)
+#the temperature and the sun hours seem to have great impact on the variation 
+#(consider these variables)
 
 ####################### Analyze the parameters for patterns #######################
 #install.packages("mgcv")
 library(mgcv)
+<<<<<<< HEAD
+#in order to locate possible transformations of the explanatory variables - no interactions
 gam1<-gam(ratio~s(aveTemp)+s(maxTemp)+s(maxTemp)+s(relHum)+s(sunHours)+s(precip),data=data.primary.NAomit0)
+summary(gam1) 
+#the s(precip) is not significant
+=======
+gam1<-gam(ratio~s(aveTemp)+s(maxTemp)+s(relHum)+s(sunHours)+s(precip),data=data.primary.NAomit0)
+summary(gam1)
+#the s(precip is not significant)
+>>>>>>> 14dce1f50d8aaa4beb3d7fa85df089c23981d8b2
+par(mfrow=c(2,3))
+plot(gam1)
+
+
+gam1<-gam(ratio~s(aveTemp)+s(maxTemp)+s(relHum)+s(sunHours)+s(precip),data=data.primary.NAomit0)
 summary(gam1)
 #the s(precip is not significant)
 par(mfrow=c(2,3))
@@ -42,20 +59,115 @@ plot(gam1)
     #maxTemp - linear or quadratic
     #relHum - linear
     #sunHours - linear or nonlinear
-    #precip - linear or pwl - not significant though
-####### intermediate test 19.ja ###########
-lm13 <- lm(ratio~aveTemp*maxTemp*relHum*sunHours,data=data.primary.NAomit0)
-summary(lm13)
-lm14 <- step(lm13)
-#drop the highest order term
-drop1(lm14,test="F")
-summary(lm14)
-par(mfrow=c(2,2))
-plot(lm14)
+    #precip - linear or pwl - not significant 
 
+####### intermediate test 19.jan ###########
+#we check the significance of the variables is similar for the general linear model - with no interactions
+lm1 <- lm(ratio~(aveTemp+maxTemp+relHum+sunHours+precip),data.primary.NAomit0)
+anova(lm1)
+step(lm1)
+drop1(lm1,test="F")
+par(mfrow=c(2,2))
+plot(lm1)
+# according to a F test, precip is insignificant and the residuals look bad
+#such was also the case for the residuals in the two- and three-way interactions
+#we prefere to look at transformation rather than interaction - BETTER REASONING NEEDED
+
+#for next model we remove the "precip" as it was not significant in previous models
+#furthermore it seems to be fairly uncorrelated to the other parameters - see paired plot
+#we saw in gam1 that an pwl term could be added for the aveTemp - so we locate the optimal split point
+pwl<-function(x,x0){
+  return( (x > x0) * (x-x0) )
+}
+
+optim<-optimize(function(zz){
+  sum( residuals(lm((ratio) ~ (aveTemp+maxTemp+relHum+sunHours)+pwl(aveTemp,zz),data=data.primary.NAomit0))^2 )
+},c(5,11)) 
+
+(x2.opt<-optim$minimum)
+
+lm2 <- lm((ratio)~aveTemp+maxTemp+relHum+sunHours+pwl(aveTemp,x2.opt),data=data.primary.NAomit0)
+anova(lm2)
+drop1(lm2,test="F")
+par(mfrow=c(2,2))
+plot(lm2)
+#residuals look better but still not sufficiently good
+#look at individual residuals
 for ( i in  c("aveTemp","maxTemp","relHum","sunHours")){
-  plot(data.primary.NAomit0[[i]],residuals(lm14),type="n",xlab=i)
-  panel.smooth(data.primary.NAomit0[[i]],residuals(lm14))
+  plot(data.primary.NAomit0[[i]],residuals(lm2),type="n",xlab=i)
+  panel.smooth(data.primary.NAomit0[[i]],residuals(lm2))
+}
+#the residuals for relHum and sunHours should be considered for transformation
+#sunHours are insignificant and could probably be removed 
+#new model
+#we remove the sunHours due to insignificans - also consider more data due to many NA's in sunHours
+#data.primary.NAomit1
+optim<-optimize(function(zz){
+  sum( residuals(lm(ratio ~ (aveTemp+maxTemp+relHum)+pwl(aveTemp,zz),data=data.primary.NAomit1))^2 )
+},c(5,11))  
+
+(x3.opt<-optim$minimum)
+
+lm3 <- lm(ratio~(aveTemp+maxTemp+relHum)+pwl(aveTemp,x3.opt),data=data.primary.NAomit1)
+anova(lm3)
+drop1(lm3,test="F")
+#all parameters significant but relHum
+par(mfrow=c(2,2))
+plot(lm3)
+#variance increases for the total, some strange leverage points, but otherwise better than before
+par(mfrow=c(2,2))
+for ( i in  c("aveTemp","maxTemp","relHum")){
+  plot(data.primary.NAomit1[[i]],residuals(lm3),type="n",xlab=i)
+  panel.smooth(data.primary.NAomit1[[i]],residuals(lm3))
+}
+#the residuals look good for aveTemp, maxTemp and relHum 
+#as the variance increases for greater values we transform the response variable
+
+optim<-optimize(function(zz){
+  sum( residuals(lm(sqrt(ratio) ~aveTemp+(maxTemp)+relHum+pwl(aveTemp,zz),data=data.primary.NAomit1))^2 )
+},c(3,15))
+(x4.opt<-optim$minimum)
+
+lm4 <- lm(sqrt(ratio)~aveTemp+(maxTemp)+relHum+pwl(aveTemp,x5.opt),data=data.primary.NAomit1)
+anova(lm4)
+drop1(lm4,test="F")
+summary(lm4)
+par(mfrow=c(2,2))
+plot(lm4)
+#all parameters significant
+par(mfrow=c(2,2))
+for ( i in  c("aveTemp","maxTemp","relHum")){
+  plot(data.primary.NAomit1[[i]],residuals(lm4),type="n",xlab=i)
+  panel.smooth(data.primary.NAomit1[[i]],residuals(lm4))
+}
+######### final model ########
+optim<-optimize(function(zz){
+  sum( residuals(lm(sqrt(ratio) ~aveTemp+relHum+pwl(aveTemp,zz),data=data.primary.NAomit1))^2 )
+},c(3,15))
+(x15.opt<-optim$minimum)
+
+lm15 <- lm(sqrt(ratio)~aveTemp+relHum+pwl(aveTemp,x15.opt),data=data.primary.NAomit1)
+anova(lm15)
+summary(lm15)
+par(mfrow=c(2,2))
+plot(lm15)
+
+par(mfrow=c(2,1))
+for ( i in  c("aveTemp","relHum")){
+  plot(data.primary.NAomit1[[i]],residuals(lm15),type="n",xlab=i)
+  panel.smooth(data.primary.NAomit1[[i]],residuals(lm15))
+}
+
+par(mfrow=c(1,1))
+tree15 <- tree(lm15)
+plot(tree15)
+text(tree15)
+########
+
+
+for ( i in  c("aveTemp","relHum","sunHours")){
+  plot(data.primary.NAomit0[[i]],residuals(lm15),type="n",xlab=i)
+  panel.smooth(data.primary.NAomit0[[i]],residuals(lm15))
 }
 
 pwl<-function(x,x0){
@@ -189,5 +301,36 @@ data$ratioR8 = (data$R8pos/data$R8total)
 dev.off()
 boxplot(data$ratioR1, data$ratioR2, data$ratioR3, data$ratioR4, data$ratioR5, data$ratioR6, data$ratioR7, data$ratioR8)
 
+data.sub = subset(data,select=c(year,week,aveTemp,maxTemp,relHum,sunHours,precip))
 
+data.R1 = data.frame(data.sub,data$ratioR1,region=1)
+data.R2 = data.frame(data.sub,data$ratioR2,region=2)
+data.R3 = data.frame(data.sub,data$ratioR3,region=3)
+data.R4 = data.frame(data.sub,data$ratioR4,region=4)
+data.R5 = data.frame(data.sub,data$ratioR5,region=5)
+data.R6 = data.frame(data.sub,data$ratioR6,region=6)
+data.R7 = data.frame(data.sub,data$ratioR7,region=7)
+data.R8 = data.frame(data.sub,data$ratioR8,region=8)
+
+
+colnames(data.R1) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R2) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R3) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R4) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R5) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R6) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R7) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+colnames(data.R8) <- c("year","week","aveTemp","maxTemp","relHum","sunHours","precip","ratio","region")
+
+
+data.reg = rbind(data.R1,data.R2,data.R3,data.R4,data.R5,data.R6,data.R7,data.R8)
+
+data.reg$region = as.factor(data.reg$region)
+
+data.reg
+
+
+lm1<-lm(ratio~region,data.reg)
+summary(lm1)
+anova(lm1)
 
