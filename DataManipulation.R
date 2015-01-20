@@ -2,7 +2,7 @@ dev.off()
 rm(list=ls()) 
 #right numbers - 50466 & 18680
 
-setwd("/Users/leifurbjarkierlendsson/Dropbox/Applied_Statistics_Shared/Leifur/Applied_statistics/Assignment2")
+#setwd("/Users/leifurbjarkierlendsson/Dropbox/Applied_Statistics_Shared/Leifur/Applied_statistics/Assignment2")
 #dir("/Users/leifurbjarkierlendsson/Dropbox/Applied_Statistics_Shared/Leifur/Applied_statistics/Assignment2")
 
 #red in the data 
@@ -34,12 +34,11 @@ colnames(data.2) <- column.name
 colnames(data.3) <- column.name
 
 
-
 #6) Some tests are recorded in two files with different JNR!?! (Due to transitions between databases ...) 
 #data <- subset(data,!duplicated(data[c("chrnr","epinr","resultat","prvdato")]),)
 
 #should be checked.
-data  <-  data[!duplicated(data[c("chrnr","epinr","resultat","prvdato")]),]
+data.1  <-  data.1[!duplicated(data.1[c("chrnr","epinr","resultat","prvdato")]),]
 data.2  <-  data.2[!duplicated(data.2[c("chrnr","epinr","resultat","prvdato")]),]
 data.3  <-  data.2[!duplicated(data.3[c("chrnr","epinr","resultat","prvdato")]),]
 #test.data  <- unique(data.1[c("chrnr","epinr","matr", "resultat","prvdato", "region")], )
@@ -47,6 +46,7 @@ data.3  <-  data.2[!duplicated(data.3[c("chrnr","epinr","resultat","prvdato")]),
 #write.table(data.2, file = "dat2TESTED.txt")
 #write.table(data.3, file = "dat3TESTED.txt")
 #56447
+write.table(data.1, file = "/Users/thrastarson/Desktop/dat1Post.txt")
 
 #7) Merge the data using "rbind"
 data <- rbind(data.1, data.2,data.3)
@@ -56,7 +56,7 @@ data <- subset(data,(!is.na(epinr))# &chrnr>=10000))
 
 #9) Reduce the levels of resultat to only "POS" or "NEG"
 levels(data$resultat) 
-levels(data$resultat)  <- c("NEG","POS","POS","POS","POS","POS","POS","POS","POS","NEG","POS","NEG","POS")
+levels(data$resultat)  <- c("NEG","POS","POS","POS","POS","POS","POS","POS","POS","POS","POS","NEG","POS")
 
 #11) Only keep records with "matr" in c("Kloaksvaber","Svaberprøve","766","772")
 #matr.keep  <- c("Kloaksvaber","Svaberprøve","766","772")
